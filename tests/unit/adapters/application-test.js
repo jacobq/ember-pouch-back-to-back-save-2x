@@ -1,3 +1,5 @@
+/* global Promise */
+
 import { moduleFor, test } from 'ember-qunit';
 import Ember from 'ember';
 
@@ -66,33 +68,64 @@ test('Can save an item twice before waiting for the first to finish (!!! FAILING
   Ember.run(() => {
     const done = assert.async();
     const store = getStore(this);
-    const item = store.createRecord('item');
-    console.log('1st save ----------'); //eslint-disable-line no-console
-    item.save();
-    console.log('2nd save ----------'); //eslint-disable-line no-console
-    // The following will reject with "TypeError: Cannot read property 'id' of undefined"
-    item.save().then(() => {
-      // never gets here
-      console.log('2nd save finished ----------', item); //eslint-disable-line no-console
-      assert.ok(!item.get('dirtyType'), `Item shouldn't be dirty (just saved it)`);
-      done();
-    }).catch(e => {
-      //debugger; // eslint-disable-line no-debugger
-/*
-Error: Assertion Failed: 'item:1D71839B-6FA0-E9F8-8B09-CB24747F3A69' was saved to the server, but the response returned the new id 'D01D56DF-2F48-482D-9A4E-626AA774B982'. The store cannot assign a new id to a record that already has an id.
+
+    store.findAll('item').then(items => {
+      Ember.run.next(() => {
+        Promise.all(items.map(item => item.destroyRecord())).then(() => {
+          Ember.run.next(() => {
+            let item;
+            try {
+              item = store.createRecord('item', { id: 'foo' });
+            }
+            catch (e) {
+/* On subsequent runs
+Error: Assertion Failed: The id foo has already been used with another record for modelClass 'item'.
+    at new EmberError (error.js:40)
+    at Object.assert (index.js:139)
+    at Class._buildInternalModel (-private.js:12508)
+    at Class.createRecord (-private.js:10489)
+    at application-test.js:82
+    at fn (backburner.js:701)
+    at invokeWithOnError (backburner.js:283)
+    at Queue.flush (backburner.js:153)
+    at DeferredActionQueues.flush (backburner.js:345)
+    at Backburner.end (backburner.js:455)
+ */
+              assert.ok(false, e);
+              done();
+              throw e;
+            }
+            console.log('1st save ----------'); //eslint-disable-line no-console
+            item.save();
+            console.log('2nd save ----------'); //eslint-disable-line no-console
+            // The following will reject with "TypeError: Cannot read property 'id' of undefined"
+            item.save().then(() => {
+              // never gets here
+              console.log('2nd save finished ----------', item); //eslint-disable-line no-console
+              assert.ok(!item.get('dirtyType'), `Item shouldn't be dirty (just saved it)`);
+              done();
+            }).catch(e => {
+              //debugger; // eslint-disable-line no-debugger
+/* On first run
+Error: Attempted to handle event `becameError` on <item:foo> while in state root.loaded.saved.
     at new EmberError (http://localhost:7357/assets/vendor.js:24386:25)
-    at Object.assert (http://localhost:7357/assets/vendor.js:24629:15)
-    at Class.updateId (http://localhost:7357/assets/vendor.js:101057:60)
-    at Class.didSaveRecord (http://localhost:7357/assets/vendor.js:100998:12)
-    at http://localhost:7357/assets/vendor.js:101865:13
-    at Backburner.run (http://localhost:7357/assets/vendor.js:20324:36)
-    at Backburner.join (http://localhost:7357/assets/vendor.js:20333:33)
-    at http://localhost:7357/assets/vendor.js:101855:23
+    at InternalModel._unhandledEvent (http://localhost:7357/assets/vendor.js:96318:11)
+    at InternalModel.send (http://localhost:7357/assets/vendor.js:96190:12)
+    at InternalModel.adapterDidError (http://localhost:7357/assets/vendor.js:96607:10)
+    at Class.recordWasError (http://localhost:7357/assets/vendor.js:101034:19)
+    at http://localhost:7357/assets/vendor.js:101875:13
     at tryCatcher (http://localhost:7357/assets/vendor.js:63702:21)
     at invokeCallback (http://localhost:7357/assets/vendor.js:63880:33)
+    at publish (http://localhost:7357/assets/vendor.js:63866:9)
+    at publishRejection (http://localhost:7357/assets/vendor.js:63801:5)
 */
-      assert.ok(false, e.stack);
-      done();
+              assert.ok(false, e.stack);
+              done();
+              throw e;
+            });
+          });
+        });
+      });
     });
   });
 });
