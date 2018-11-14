@@ -42,5 +42,8 @@
   },
   "engines": {
     "node": "^4.5 || 6.* || >= 7.*"
+  },
+  "dependencies": {
+    "pouchdb-debug": "^7.0.0"
   }
 }
