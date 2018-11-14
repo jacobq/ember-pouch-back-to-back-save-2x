@@ -22,6 +22,31 @@ test('Can save an item', function(assert) {
 });
 
 
+test('Can create & save an item with various, fixed IDs', function(assert) {
+  Ember.run(() => {
+    const done = assert.async();
+    const store = getStore(this);
+    const ids = ['12345', 'abcde', 'foo_bar', 'baz-quux'];
+    function run(idIndex) {
+      const id = ids[idIndex];
+      const item = store.createRecord('item', { id });
+      item.save().then(() => {
+        assert.equal(item.get('id'), id);
+        assert.ok(!item.get('dirtyType'), `Item shouldn't be dirty (just saved it)`);
+        const nextIdIndex = idIndex + 1;
+        if (nextIdIndex < ids.length) {
+          run(nextIdIndex);
+        }
+        else {
+          done();
+        }
+      });
+    }
+    run(0);
+  });
+});
+
+
 test('Can save an item twice', function(assert) {
   Ember.run(() => {
     const done = assert.async();
@@ -35,6 +60,7 @@ test('Can save an item twice', function(assert) {
     })
   });
 });
+
 
 test('Can save an item twice before waiting for the first to finish (!!! FAILING !!!)', function(assert) {
   Ember.run(() => {
